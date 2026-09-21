@@ -1,0 +1,23 @@
+'use client';
+
+import { ChevronRight, ClipboardPlus, FileHeart, Pill, RadioTower, Search, Stethoscope, UsersRound } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Input } from '@/components/atoms/input';
+
+type RmeModule = 'patients' | 'encounters' | 'terminology' | 'interoperability';
+
+const moduleContent: Record<RmeModule, { icon: typeof UsersRound; title: string; description: string; endpoint: string; items: string[] }> = {
+  patients: { icon: UsersRound, title: 'Pasien & Admisi', description: 'Pencarian pasien, pendaftaran, dan riwayat medis. Data ditampilkan hanya dari layanan pasien terautentikasi.', endpoint: '/patients', items: ['Cari Pasien', 'Pendaftaran Baru', 'Riwayat Pasien'] },
+  encounters: { icon: Stethoscope, title: 'Kunjungan & CPPT / SOAP', description: 'Ruang kerja pemeriksaan untuk tanda vital, catatan SOAP, dan finalisasi kunjungan.', endpoint: '/encounters', items: ['Antrean Poli', 'Pemeriksaan SOAP', 'Tanda Vital', 'E-Resep'] },
+  terminology: { icon: Pill, title: 'Terminologi Klinis', description: 'Pencarian istilah terstandar untuk diagnosis ICD-10 dan obat KFA.', endpoint: '/terminology', items: ['Diagnosis ICD-10', 'Obat KFA'] },
+  interoperability: { icon: RadioTower, title: 'Integrasi BPJS & SATUSEHAT', description: 'Pemantauan pertukaran data untuk antrean BPJS, kepesertaan, dan FHIR SATUSEHAT.', endpoint: '/bridging', items: ['Antrean BPJS (Task 1–7)', 'Kepesertaan BPJS', 'SATUSEHAT FHIR', 'Status Sinkronisasi'] },
+};
+
+export function RmeModuleWorkspace({ module }: { module: RmeModule }) {
+  const definition = moduleContent[module];
+  const [activeItem, setActiveItem] = useState(definition.items[0]);
+  const Icon = definition.icon;
+  const helper = useMemo(() => module === 'patients' ? 'Masukkan No. RM, NIK, atau nama pasien.' : module === 'terminology' ? 'Cari kode atau istilah klinis.' : 'Pilih submenu untuk memulai.', [module]);
+
+  return <main className="min-h-[calc(100vh-5rem)] bg-white p-5 sm:p-8 lg:p-10"><div className="mx-auto grid max-w-[1600px] gap-6 lg:grid-cols-[248px_minmax(0,1fr)]"><aside aria-label={`Submenu ${definition.title}`} className="h-fit rounded-2xl border border-stone-200 bg-white p-3 shadow-sm lg:sticky lg:top-24"><div className="border-b border-stone-100 px-3 pb-4"><p className="text-xs font-bold uppercase tracking-wider text-[#6b6b73]">Modul RME</p><div className="mt-2 flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#ffd9bf] text-[#ff7a1a]"><Icon className="h-4 w-4" /></span><h1 className="text-base font-bold text-[#0b0d2c]">{definition.title}</h1></div></div><nav className="mt-3 space-y-1">{definition.items.map((item) => <button aria-current={activeItem === item ? 'page' : undefined} className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] ${activeItem === item ? 'bg-[#fff0e6] text-[#ff7a1a]' : 'text-[#6b6b73] hover:bg-stone-50 hover:text-[#0b0d2c]'}`} key={item} onClick={() => setActiveItem(item)} type="button"><ChevronRight className="h-4 w-4" />{item}</button>)}</nav></aside><section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8"><div className="border-b border-stone-100 pb-6"><p className="text-sm font-semibold text-[#ff7a1a]">Modul RME</p><h2 className="mt-1 text-2xl font-bold tracking-tight text-[#0b0d2c]">{activeItem}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#6b6b73]">{definition.description}</p></div><div className="mt-8 max-w-xl rounded-2xl border border-dashed border-stone-200 bg-[#fffaf7] p-6"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#ffd9bf] text-[#ff7a1a]">{module === 'encounters' ? <ClipboardPlus className="h-5 w-5" /> : module === 'interoperability' ? <RadioTower className="h-5 w-5" /> : <FileHeart className="h-5 w-5" />}</span><div><h3 className="font-bold text-[#0b0d2c]">Ruang kerja {activeItem}</h3><p className="text-xs text-[#6b6b73]">Kontrak layanan: <code>{definition.endpoint}</code></p></div></div>{(module === 'patients' || module === 'terminology') && <label className="relative mt-5 block"><span className="sr-only">Pencarian modul</span><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" /><Input className="pl-9" placeholder={helper} /></label>}<p className="mt-5 text-sm leading-6 text-[#6b6b73]">Belum ada data klinis yang dimuat dalam preview ini. Layar produksi harus memakai respons layanan terautentikasi, pencatatan audit, dan hak akses per peran.</p></div></section></div></main>;
+}

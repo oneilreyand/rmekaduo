@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #0b0d2c;
+  --kaduo-ink: #0b0d2c;
+  --kaduo-orange: #ff7a1a;
+  --kaduo-peach: #ffd9bf;
+  --kaduo-surface: #f5e3d6;
+  --kaduo-muted: #6b6b73;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: rgb(231 229 228);
+}
+
+/* Palette aliases keep every existing component on the Kaduo visual system. */
+.text-\[\#313866\], .text-\[\#0f172a\] { color: #0b0d2c !important; }
+.text-\[\#50409a\], .text-\[\#006bbb\] { color: #ff7a1a !important; }
+.text-\[\#557b83\] { color: #6b6b73 !important; }
+.bg-\[\#964ec2\], .bg-\[\#006bbb\] { background-color: #ff7a1a !important; }
+.border-\[\#964ec2\] { border-color: #ff7a1a !important; }
+.hover\:border-\[\#964ec2\]:hover { border-color: #ff7a1a !important; }
+.bg-\[\#ff7bbf\], .bg-\[\#39aea9\] { background-color: #ffd9bf !important; }
+.text-\[\#ff7bbf\], .text-\[\#39aea9\] { color: #ff7a1a !important; }
+.bg-\[\#f7edff\], .bg-\[\#eaf6f6\] { background-color: #f5e3d6 !important; }
+.bg-\[\#f8fafc\] { background-color: #ffffff !important; }
+.focus-visible\:ring-\[\#30a0e0\]:focus-visible { --tw-ring-color: #ff7a1a !important; }
+svg [stroke="#964ec2"] { stroke: #ff7a1a; }
+
+.rme-dark body,
+.rme-dark main {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+.rme-dark header,
+.rme-dark article,
+.rme-dark .bg-white,
+.rme-dark .bg-\[\#f8fafc\],
+.rme-dark .bg-\[\#caf0f8\] {
+  background-color: #121212 !important;
+}
+
+.rme-dark .text-\[\#0f172a\],
+.rme-dark .text-\[\#03045e\],
+.rme-dark .text-\[\#0b0d2c\],
+.rme-dark .text-stone-900,
+.rme-dark .text-stone-800,
+.rme-dark .text-stone-700,
+.rme-dark .text-stone-600 {
+  color: #ffffff !important;
+}
+
+.rme-dark .text-stone-500,
+.rme-dark .text-stone-400 {
+  color: #cbd5e1 !important;
+}
+
+.rme-dark .border-stone-200,
+.rme-dark .border-stone-300,
+.rme-dark .border-t {
+  border-color: #3f3f46 !important;
+}
+
+.rme-dark .bg-stone-50,
+.rme-dark .bg-stone-100 {
+  background-color: #1c1c1c !important;
+}

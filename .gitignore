@@ -1,0 +1,20 @@
+# Dependencies and framework output
+node_modules/
+.next/
+out/
+
+# Local environment and credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Tooling caches and logs
+*.tsbuildinfo
+*.log
+.DS_Store
+
+# Local editor settings
+.vscode/
+.idea/
