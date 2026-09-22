@@ -1,13 +1,46 @@
 'use client';
 
-import { Bell, ChevronDown, Moon, Search, Settings, Sun } from 'lucide-react';
+import { Bell, ChevronDown, Moon, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export type AppMenu = 'system-ui' | 'patients' | 'encounters' | 'terminology' | 'interoperability' | 'settings';
+export type AppMenu =
+  | 'admission'
+  | 'queue-display'
+  | 'triage'
+  | 'consultation'
+  | 'pharmacy-cashier'
+  | 'system-ui'
+  | 'settings';
 
 interface AppHeaderProps {
   activeMenu: AppMenu;
   onMenuChange: (menu: AppMenu) => void;
+}
+
+/** Shared nav button — avoids duplicating className logic */
+function NavButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-current={active ? 'page' : undefined}
+      onClick={onClick}
+      className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+        active
+          ? 'ui-action shadow-sm'
+          : 'ui-ghost'
+      }`}
+    >
+      {label}
+    </button>
+  );
 }
 
 export function AppHeader({ activeMenu, onMenuChange }: AppHeaderProps) {
@@ -19,26 +52,192 @@ export function AppHeader({ activeMenu, onMenuChange }: AppHeaderProps) {
     return () => document.documentElement.classList.remove('rme-dark');
   }, [isDarkMode]);
 
-  return (
-    <header className="sticky top-0 z-20 h-20 border-b border-stone-100 bg-white">
-      <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 sm:px-8 lg:px-12">
-        <div className="flex items-center gap-2"><div aria-label="Kaduo" className="grid h-9 w-9 place-items-center rounded-xl bg-[#0b0d2c] text-base font-black text-[#ff7a1a] shadow-sm">K</div><span className="text-xl font-black tracking-tight text-[#0b0d2c]">KADUO<span className="text-[#ff7a1a]">+</span></span></div>
-        <nav aria-label="Navigasi utama" className="hidden max-w-[670px] rounded-full border border-stone-100 bg-[#f8f8f8] p-1 shadow-sm lg:flex">{[
-          ['patients', 'Pasien'],
-          ['encounters', 'Kunjungan'],
-          ['terminology', 'Terminologi'],
-          ['interoperability', 'Integrasi'],
-          ['settings', 'Pengaturan'],
-          ['system-ui', 'Sistem UI'],
-        ].map(([id, label]) => <button aria-current={activeMenu === id ? 'page' : undefined} className={`rounded-full px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] ${activeMenu === id ? 'bg-[#ff7a1a] text-white' : 'text-[#6b6b73] hover:bg-white hover:text-[#0b0d2c]'}`} key={id} onClick={() => onMenuChange(id as AppMenu)} type="button">{label}</button>)}</nav>
-        <div className="relative flex items-center justify-self-end gap-2">
-          <label className="relative hidden lg:block"><span className="sr-only">Cari</span><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" /><input className="h-10 w-36 rounded-full border border-stone-100 bg-[#fafafa] pl-9 pr-3 text-xs text-[#0b0d2c] outline-none focus:border-[#ff7a1a]" placeholder="Cari" /></label>
-          <button aria-label="Pengaturan cepat" className="hidden h-10 w-10 place-items-center rounded-full border border-stone-100 bg-white text-stone-600 hover:bg-stone-50 sm:grid" type="button"><Settings className="h-4 w-4" /></button>
-          <button aria-label={isDarkMode ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'} aria-pressed={isDarkMode} className="grid h-11 w-11 place-items-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition-colors hover:bg-stone-100" onClick={() => setIsDarkMode((value) => !value)} type="button">{isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>
-          <button aria-label="Notifikasi" className="relative grid h-11 w-11 place-items-center rounded-2xl border border-stone-200 bg-white text-stone-600 transition-colors hover:bg-stone-100" type="button"><Bell className="h-5 w-5" /><span aria-label="19 notifikasi belum dibaca" className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#39aea9] px-1 text-[10px] font-bold text-[#0f172a]">19</span></button>
-          <button aria-expanded={isProfileOpen} aria-haspopup="menu" aria-label="Menu profil pengguna" className="flex h-11 items-center gap-1 rounded-2xl border border-stone-200 bg-white py-1 pl-1 pr-2 text-sm font-bold text-[#0f172a] transition-colors hover:bg-stone-100" onClick={() => setIsProfileOpen((value) => !value)} type="button"><span className="grid h-8 w-8 place-items-center rounded-xl bg-[#39aea9]">S</span><ChevronDown className="h-4 w-4 text-stone-500" /></button>
-          {isProfileOpen && <div className="absolute right-0 top-14 z-30 w-56 rounded-2xl border border-stone-200 bg-white p-2 shadow-xl" role="menu"><p className="px-3 py-2 text-xs font-semibold text-stone-400">PROFIL PENGGUNA</p><button className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-stone-700 hover:bg-stone-100" role="menuitem" type="button">Pengaturan profil</button><button className="w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-stone-700 hover:bg-stone-100" role="menuitem" type="button">Keluar</button></div>}
+  /** Shared action controls: theme, notifications, and profile. */
+  const actionBar = (
+    <div className="relative flex shrink-0 items-center gap-2">
+      <button
+        type="button"
+        aria-label={isDarkMode ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
+        aria-checked={isDarkMode}
+        onClick={() => setIsDarkMode((v) => !v)}
+        className="ui-theme-switch relative grid h-9 w-[4.5rem] shrink-0 place-items-center rounded-full transition-colors sm:h-10"
+        role="switch"
+      >
+        <span aria-hidden="true" className={`ui-theme-switch-thumb absolute left-1 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full transition-transform duration-200 ease-out sm:h-8 sm:w-8 ${isDarkMode ? 'translate-x-8' : 'translate-x-0'}`}>
+          {isDarkMode ? <Moon className="h-3.5 w-3.5 text-[var(--action)]" /> : <Sun className="h-3.5 w-3.5 text-[var(--action)]" />}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        aria-label="Pemberitahuan klinis"
+        className="ui-icon-button relative grid h-9 w-9 place-items-center rounded-xl shadow-xs transition-colors sm:h-10 sm:w-10"
+      >
+        <Bell className="h-4 w-4" />
+        <span
+          aria-label="3 pesan sistem belum dibaca"
+          className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-0.5 text-[9px] font-bold text-white shadow-xs"
+        >
+          3
+        </span>
+      </button>
+
+      <button
+        type="button"
+        aria-expanded={isProfileOpen}
+        aria-haspopup="menu"
+        aria-label="Menu profil dokter"
+        onClick={() => setIsProfileOpen((v) => !v)}
+        className="ui-icon-button flex h-9 items-center gap-1.5 rounded-xl py-1 pl-1.5 pr-2 shadow-xs transition-colors sm:h-10 sm:gap-2 sm:pr-2.5"
+      >
+        <div className="ui-action-soft grid h-6 w-6 place-items-center rounded-lg text-xs font-bold sm:h-7 sm:w-7">
+          DR
         </div>
+        <div className="hidden text-left sm:block">
+          <p className="ui-heading text-xs font-bold leading-tight">
+            dr. Sarah
+          </p>
+          <p className="ui-copy text-[10px] leading-none">
+            Dokter Penanggung Jawab
+          </p>
+        </div>
+        <ChevronDown className="ui-copy h-3.5 w-3.5" />
+      </button>
+
+      {isProfileOpen && (
+        <div
+          role="menu"
+          className="ui-card absolute right-0 top-11 z-30 w-56 rounded-2xl p-1.5 shadow-xl animate-in fade-in zoom-in-95 duration-100 sm:top-12"
+        >
+          <div className="border-b px-3 py-2">
+            <p className="ui-heading text-xs font-bold">
+              dr. Sarah Amalia, Sp.PD
+            </p>
+            <p className="ui-copy text-[10px]">
+              Profil pengguna contoh
+            </p>
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            className="ui-ghost w-full rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors"
+          >
+            Profil contoh
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="ui-ghost w-full rounded-xl px-3 py-2 text-left text-xs font-medium transition-colors"
+          >
+            Preferensi tampilan
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="ui-status-danger w-full rounded-xl border px-3 py-2 text-left text-xs font-medium transition-colors"
+          >
+            Keluar
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  /** Brand / clinic identity block */
+  const brand = (
+    <div className="flex min-w-0 items-center gap-2.5">
+      <div
+        aria-label="Kaduo"
+        className="ui-brand grid h-9 w-9 shrink-0 place-items-center rounded-xl text-sm font-black sm:h-11 sm:w-11 sm:rounded-2xl"
+      >
+        K
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="ui-heading truncate text-sm font-black tracking-tight sm:text-base">
+            KADUO<span className="ui-eyebrow">+</span>
+          </span>
+          <span className="ui-action-soft hidden shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold sm:inline">
+            RME Klinik
+          </span>
+        </div>
+        <p className="ui-copy hidden text-[11px] font-medium sm:block">
+          Klinik Kaduo • Poli Umum
+        </p>
+      </div>
+    </div>
+  );
+
+  /** Inline nav pills container */
+  const navPills = (desktop?: boolean) => (
+    <nav
+      aria-label="Navigasi modul RME"
+      className={
+        desktop
+          ? 'ui-surface-subtle flex items-center rounded-full border p-1 shadow-xs overflow-x-auto max-w-full'
+          : 'flex items-center gap-1 overflow-x-auto py-2 scrollbar-none'
+      }
+    >
+      <NavButton
+        label="Admisi"
+        active={activeMenu === 'admission'}
+        onClick={() => onMenuChange('admission')}
+      />
+      <NavButton
+        label="TV Antrean"
+        active={activeMenu === 'queue-display'}
+        onClick={() => onMenuChange('queue-display')}
+      />
+      <NavButton
+        label="Triase"
+        active={activeMenu === 'triage'}
+        onClick={() => onMenuChange('triage')}
+      />
+      <NavButton
+        label="Konsultasi"
+        active={activeMenu === 'consultation'}
+        onClick={() => onMenuChange('consultation')}
+      />
+      <NavButton
+        label="Farmasi & Kasir"
+        active={activeMenu === 'pharmacy-cashier'}
+        onClick={() => onMenuChange('pharmacy-cashier')}
+      />
+      <NavButton
+        label="Katalog"
+        active={activeMenu === 'system-ui'}
+        onClick={() => onMenuChange('system-ui')}
+      />
+      <NavButton
+        label="Pengaturan"
+        active={activeMenu === 'settings'}
+        onClick={() => onMenuChange('settings')}
+      />
+    </nav>
+  );
+
+  return (
+    <header className="ui-surface sticky top-0 z-20 border-b backdrop-blur-md">
+
+      {/* ─── MOBILE / TABLET layout (< lg) ─── */}
+      <div className="lg:hidden">
+        {/* Row 1: brand + action bar */}
+        <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6">
+          {brand}
+          {actionBar}
+        </div>
+
+        {/* Row 2: scrollable nav pills */}
+        <div className="border-t px-4 sm:flex sm:justify-center sm:px-6">
+          {navPills(false)}
+        </div>
+      </div>
+
+      {/* ─── DESKTOP layout (lg+): single row 3-column ─── */}
+      <div className="hidden lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:items-center lg:gap-4 lg:px-8">
+        {brand}
+        {navPills(true)}
+        <div className="flex justify-end">{actionBar}</div>
       </div>
     </header>
   );

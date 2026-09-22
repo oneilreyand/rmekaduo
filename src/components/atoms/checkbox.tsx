@@ -7,5 +7,5 @@ interface CheckboxProps {
 }
 
 export function Checkbox({ checked, label, onChange }: CheckboxProps) {
-  return <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-stone-700"><input checked={checked} className="h-4 w-4 rounded border-stone-300 text-[#006bbb] focus:ring-[#30a0e0]" onChange={(event) => onChange(event.target.checked)} type="checkbox" /><span>{label}</span></label>;
+  return <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-[var(--text)]"><input checked={checked} className="h-4 w-4 rounded border-[var(--border-strong)]" onChange={(event) => onChange(event.target.checked)} style={{ accentColor: 'var(--action)' }} type="checkbox" /><span>{label}</span></label>;
 }

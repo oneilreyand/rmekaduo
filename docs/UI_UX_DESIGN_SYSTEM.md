@@ -1,158 +1,77 @@
-# 🎨 Modern Next-Gen Clinical Design System (Interactive & Ergonomic)
+# Kaduo UI System
 
-Dokumen ini mendefinisikan sistem desain antarmuka generasi baru untuk RME. Mengadopsi estetika modern kelas dunia (terinspirasi dari *Apple Health* dan *Linear*) dengan sentuhan interaktivitas tinggi, kartu *soft-elevation*, visualisasi telemetri klinis *real-time*, dan komponen cerdas berkecepatan tinggi.
+Dokumen ini adalah sumber visual untuk RME Kaduo. Tujuannya adalah tampilan yang tenang, dapat dipindai, dan konsisten; bukan demonstrasi visual yang berbeda-beda per layar.
 
----
+## Prinsip
 
-## 📸 Preview Desain Generasi Baru
+1. **Satu sistem, bukan kumpulan demo.** Katalog memakai komponen produksi yang sama dengan layar aplikasi.
+2. **Informasi sebelum dekorasi.** Typography, jarak, dan label menjelaskan makna sebelum warna atau animasi.
+3. **Status keselamatan tidak bergantung pada warna.** Status alergi, risiko jatuh, sukses, peringatan, dan kesalahan selalu memakai teks serta ikon.
+4. **Bahasa antarmuka adalah Bahasa Indonesia.** Nama teknis yang baku, seperti SOAP, ICD-10, BPJS, dan SATUSEHAT, boleh dipertahankan.
+5. **Data katalog adalah contoh non-pasien.** Jangan tampilkan identitas atau catatan klinis pasien di halaman referensi.
 
-![Next-Gen Interactive Clinical Workspace](../docs/assets/modern_interactive_rme_ui.jpg)
+## Token warna
 
----
+| Peran | Light | Dark | Penggunaan |
+| --- | --- | --- | --- |
+| Canvas | `#FFFFFF` | `#000000` | Latar aplikasi |
+| Surface | `#FFFFFF` | `#121212` | Header, kartu, dialog |
+| Surface halus | `#FFFAF7` | `#1C1C1C` | Panel sekunder, chip, skeleton |
+| Teks utama | `#0B0D2C` | `#FFFFFF` | Judul, nilai, konten penting |
+| Teks sekunder | `#6B6B73` | `#CBD5E1` | Deskripsi, label pendukung |
+| Border | `#E7E5E4` | `#3F3F46` | Pemisah dan batas kontrol |
+| Aksi/fokus | `#FF7A1A` | `#FF8F3D` | CTA, navigasi aktif, fokus |
+| Aksi halus | `#FFD9BF` | `#402817` | Active state ringan, avatar |
 
-## 🌟 Pilar Interaktivitas & Daya Tarik Visual
+Warna merah, amber, dan hijau hanya untuk status berlabel:
 
-| Komponen Interaktif | Tampilan Visual | Manfaat Klinis & UX |
-| :--- | :--- | :--- |
-| **Micro Sparkline Telemetry** | Grafik mini tren Tensi Darah & Nadi 3 kunjungan terakhir dengan zona hijau (*normal band*). | Dokter langsung mengetahui tren penurunan/kenaikan tensi tanpa harus membaca tabel riwayat satu per satu. |
-| **Interactive Pain Scale Slider** | Slider visual gradasi warna (0–10) dilengkapi ikon emotikon ekspresi wajah dinamis (Wong-Baker/NRS). | Perawat/dokter cukup menggeser slider dengan mouse atau keyboard arrow (`←` / `→`). |
-| **Smart Dosage Builder Chips** | Pill badge interaktif: `[3x1]` `[Sesudah Makan]` `[10 Tab]` `[Racikan]`. | Dokter cukup klik chip dosis yang paling sering digunakan; aturan pakai terisi otomatis dalam 1 klik. |
-| **Dynamic Diagnostic Macro Pills** | Badge warna-warni dengan ikon: `[ISPA ⚡]` `[Hipertensi 🩺]` `[Dispepsia 💊]`. | 1-klik mengisi template SOAP, memfilter ICD-10 terkait, dan menyarankan resep standar. |
-| **Glowing Patient Safety Pills** | Badge merah menyala lembut (*subtle pulse glow*) untuk alergi dan amber untuk risiko jatuh. | Memastikan dokter tidak melewatkan riwayat alergi fatal bahkan di saat kelelahan pada akhir shift. |
-| **Glassmorphism Floating Action Dock** | Bar melayang di bawah layar dengan *backdrop blur*, live status dots, dan shortcut badge (`⌘S`, `⌥R`). | Bersih, elegan, dan menjaga fokus pandangan dokter pada formulir klinis utama. |
+| Status | Warna | Kewajiban |
+| --- | --- | --- |
+| Kritis/kesalahan | Merah | Ikon dan teks eksplisit |
+| Perlu perhatian | Amber | Ikon dan teks eksplisit |
+| Berhasil/normal | Hijau | Ikon dan teks eksplisit |
 
----
+Jangan memakai biru sebagai aksen produk, token fokus, chart utama, atau navigasi aktif. Jangan menambahkan override CSS global yang memetakan kelas warna lama dengan `!important`; pindahkan setiap komponen ke token semantik.
 
-## 🎨 Palet Warna & Token Visual (Modern Health-Tech)
+## Light dan dark mode
 
-| Token | Warna / Hex | Tailwind CSS Class | Penggunaan & Efek Visual |
-| :--- | :--- | :--- | :--- |
-| **App Canvas** | `#F8FAFC` | `bg-slate-50/50` | Latar belakang bersih dengan gradien halus ke `#EFF6FF` (soft sky tint). |
-| **Card Surface** | `#FFFFFF` | `bg-white/90 backdrop-blur-sm shadow-sm rounded-2xl border border-slate-200/80` | Kartu putih bersih dengan sudut lengkung modern (`rounded-2xl`). |
-| **Active Glow Focus** | `#06B6D4` / `#0EA5E9` | `ring-2 ring-cyan-500/50 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.25)]` | Cincin fokus menyala lembut saat dokter mengetik atau mengklik field. |
-| **Allergy Critical** | `#EF4444` | `bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.4)] animate-pulse` | Badge merah dengan *subtle glowing pulse* untuk alergi obat berat. |
-| **Fall Risk Warning** | `#F59E0B` | `bg-amber-100 text-amber-900 border border-amber-300 font-medium` | Badge peringatan risiko jatuh kuning/amber. |
-| **Vitals Normal Zone** | `#10B981` | `bg-emerald-50 text-emerald-700 border-emerald-200` | Indikator rentang normal tanda vital & status BPJS aktif. |
+Tema dikendalikan oleh class `rme-dark` pada elemen root. Semua komponen bersama harus membaca variabel di `src/app/globals.css`:
 
----
+- `--canvas`, `--surface`, `--surface-subtle`, `--surface-muted`
+- `--text`, `--text-muted`, `--border`, `--border-strong`
+- `--action`, `--action-hover`, `--action-soft`, `--focus`
+- `--chart-grid`, `--chart-primary`, `--chart-normal`
+- `--success-*`, `--warning-*`, `--danger-*` untuk latar, teks, dan border status yang berlabel
 
-## 🧩 Anatomi Komponen Spesifik
+Komponen tidak boleh menyematkan hex produk atau pasangan `slate/sky` baru. Pengecualian hanya warna status keselamatan yang memiliki label dan ikon.
 
-### 1. Kartu Telemetri Tanda Vital (dengan Sparkline Trend)
-```tsx
-// Cuplikan Konsep Komponen React + Recharts / SVG Sparkline
-export function VitalSignsWidget({ bpHistory, heartRateHistory }) {
-  return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="font-semibold text-slate-800 text-sm">Vital Signs</h4>
-        <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
-          Normal range
-        </span>
-      </div>
+## Kontrol dan state
 
-      {/* Blood Pressure Card with Mini Sparkline */}
-      <div className="flex items-center justify-between p-3 bg-slate-50/70 rounded-xl mb-2">
-        <div>
-          <p className="text-xs text-slate-500">Blood Pressure</p>
-          <p className="text-lg font-bold font-mono text-slate-900">120/80 <span className="text-xs font-normal text-slate-500">mmHg</span></p>
-        </div>
-        <MiniSparkline data={[125, 122, 118, 120]} normalRange={[110, 130]} color="#0ea5e9" />
-      </div>
+| Elemen | Light & dark requirement |
+| --- | --- |
+| Tombol | Primary memakai action; secondary memakai surface muted; disabled turun opacity tanpa menghilangkan teks. |
+| Input | Surface dan border token; focus menggunakan `--focus` serta border terlihat. |
+| Checkbox | Memakai `--action` melalui `accent-color`; label selalu clickable. |
+| Toggle | On memakai `--action`, off memakai `--control-off`, thumb memakai `--surface`; track memiliki border, thumb bergerak nyata, label terlihat, dan state dinyatakan melalui `role="switch"` + `aria-checked`. Toggle tema boleh hanya memakai ikon matahari/bulan jika tetap memiliki nama aksesibel. |
+| Badge | Status netral menggunakan surface muted; status keselamatan memakai teks + ikon + warna. |
+| Grafik | Seri utama memakai `--chart-primary`, grid memakai `--chart-grid`, normal range memakai `--chart-normal`; grafik memiliki judul/label. |
+| Loading | Spinner memakai action dan track muted; skeleton memakai surface muted. |
 
-      {/* Heart Rate Card with Mini Sparkline */}
-      <div className="flex items-center justify-between p-3 bg-slate-50/70 rounded-xl">
-        <div>
-          <p className="text-xs text-slate-500">Heart Rate</p>
-          <p className="text-lg font-bold font-mono text-slate-900">82 <span className="text-xs font-normal text-slate-500">bpm</span></p>
-        </div>
-        <MiniSparkline data={[78, 85, 80, 82]} normalRange={[60, 100]} color="#10b981" />
-      </div>
-    </div>
-  );
-}
-```
+## Atomic Design
 
----
+- **Atoms:** kontrol context-free, avatar, badge, progress, spinner, skeleton, sparkline, shortcut.
+- **Molecules:** kombinasi satu interaksi, seperti input kata sandi, date picker, tabs, tooltip, pain scale, dan chips.
+- **Organisms:** region yang dapat digunakan ulang, seperti ringkasan grafik, tabel status, atau state pemulihan.
+- **Templates:** hanya mengatur layout dan state halaman.
 
-### 2. Slider Skala Nyeri Interaktif (Visual Pain Scale)
-```tsx
-export function InteractivePainSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const getFaceEmoji = (val: number) => {
-    if (val === 0) return '😊';
-    if (val <= 3) return '🙂';
-    if (val <= 6) return '😐';
-    if (val <= 8) return '😣';
-    return '😭';
-  };
+Katalog harus mengimpor komponen tersebut. Jangan menyalin markup tombol, input, atau badge langsung di preview.
 
-  return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-semibold text-slate-800">Pain Scale</span>
-        <div className="flex items-center gap-1.5 bg-sky-50 text-sky-700 px-2.5 py-0.5 rounded-full font-bold text-sm">
-          <span>{getFaceEmoji(value)}</span>
-          <span>{value} / 10</span>
-        </div>
-      </div>
-      
-      <input
-        type="range"
-        min="0"
-        max="10"
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-sky-500 h-2 bg-gradient-to-r from-emerald-400 via-amber-400 to-rose-500 rounded-lg cursor-pointer"
-      />
-      <div className="flex justify-between text-[11px] font-mono text-slate-400 mt-1">
-        <span>0 (Bebas)</span>
-        <span>5 (Sedang)</span>
-        <span>10 (Tak Tertahankan)</span>
-      </div>
-    </div>
-  );
-}
-```
+## Pemeriksaan sebelum selesai
 
----
+Untuk perubahan UI, verifikasi:
 
-### 3. Smart Dosage Builder Chips (Peresepan Cepat)
-Dokter memilih obat, lalu klik chip dosis tanpa mengetik teks manual:
-```tsx
-export function DosageChips({ onSelect }: { onSelect: (rule: string) => void }) {
-  const commonDosages = [
-    { label: '3x1', text: '3 x 1 tablet sehari' },
-    { label: '2x1', text: '2 x 1 tablet sehari' },
-    { label: '1x1 malam', text: '1 x 1 tablet malam hari' },
-    { label: 'Sesudah Makan', text: 'sesudah makan (p.c.)' },
-    { label: 'Sebelum Makan', text: 'sebelum makan (a.c.)' },
-    { label: '10 Tab', qty: 10 },
-  ];
-
-  return (
-    <div className="flex flex-wrap gap-1.5 mt-2">
-      {commonDosages.map((item, idx) => (
-        <button
-          key={idx}
-          onClick={() => onSelect(item.text || `${item.qty}`)}
-          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 border border-slate-200 transition-all active:scale-95"
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-```
-
----
-
-## ⌨️ Floating Action Bar & Keyboard Shortcuts
-
-Dock aksi di bagian bawah dibuat dengan gaya *modern glassmorphism*:
-* `backdrop-blur-md bg-white/80 border border-slate-200/60 shadow-lg rounded-2xl`
-* Memuat status live dot:
-  * 🟢 **BPJS: Live ●** (terkoneksi WebSocket antrean)
-  * 🟢 **SATUSEHAT: Sync Ready ●** (token valid & payload ter-bundle)
-* Tombol aksi utama:
-  * `[ Selesai & Simpan ]` dengan animasi hover dan shortcut `Ctrl + Enter`.
+1. Light dan dark mode pada katalog dan layar aplikasi.
+2. State default, hover/focus, disabled, loading, empty/error untuk komponen yang terdampak.
+3. Keyboard: tombol, checkbox, switch, tab, input, dan slider memiliki nama aksesibel serta fokus terlihat.
+4. Lebar desktop dan mobile tidak menyembunyikan aksi penting.
+5. `npx tsc --noEmit` dan `npm run build` berhasil.

@@ -1,7 +1,31 @@
 'use client';
 
-interface ToggleProps { checked: boolean; label: string; onChange: (checked: boolean) => void; }
+interface ToggleProps {
+  checked: boolean;
+  label: string;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+}
 
-export function Toggle({ checked, label, onChange }: ToggleProps) {
-  return <label className="inline-flex cursor-pointer items-center gap-3 text-sm font-medium text-stone-700"><button aria-checked={checked} aria-label={label} className={`relative h-6 w-11 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#30a0e0] ${checked ? 'bg-[#006bbb]' : 'bg-stone-200'}`} onClick={() => onChange(!checked)} role="switch" type="button"><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} /></button>{label}</label>;
+export function Toggle({ checked, label, onChange, disabled = false, className = '' }: ToggleProps) {
+  return (
+    <div className={`inline-flex items-center gap-3 ${className}`}>
+      <button
+        aria-checked={checked}
+        aria-label={label}
+        className={`ui-toggle relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-0.5 transition-[background-color,border-color,box-shadow] disabled:cursor-not-allowed disabled:opacity-50 ${checked ? 'ui-toggle-on' : ''}`}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        role="switch"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          className={`ui-toggle-thumb block h-6 w-6 rounded-full transition-transform duration-200 ease-out ${checked ? 'translate-x-5' : 'translate-x-0'}`}
+        />
+      </button>
+      <span className="ui-heading text-sm font-medium">{label}</span>
+    </div>
+  );
 }

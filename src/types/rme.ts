@@ -24,9 +24,21 @@ export type CheckInStatus = 'NOT_CHECKED_IN' | 'CHECKED_IN' | 'EXPIRED';
 export type CheckInMethod = 'GEOLOCATION_MJKN' | 'KIOSK_QR_SCAN' | 'MANUAL_ADMISION';
 export type SatusehatEncounterStatus = 'planned' | 'arrived' | 'in-progress' | 'finished' | 'cancelled';
 
+export interface BillingInfo {
+  consultationFee: number;
+  medicationFee: number;
+  procedureFee: number;
+  total: number;
+  paymentMethod: 'BPJS' | 'UMUM' | 'ASURANSI_SWASTA';
+  isPaid: boolean;
+  sepNumber?: string;
+  paidAt?: string;
+}
+
 export interface Encounter {
   id: string;
   patientId: string;
+  patient?: Patient;
   doctorId: string;
   doctorName: string;
   poliCode: string;
@@ -42,6 +54,17 @@ export interface Encounter {
   bpjsTaskId: number;
   satusehatStatus: SatusehatEncounterStatus;
   fhirEncounterId?: string;
+  vitals?: VitalSigns;
+  triageNotes?: string;
+  triageCompletedAt?: string;
+  nurseName?: string;
+  soap?: SoapNote;
+  prescriptions?: PrescriptionItem[];
+  consultationStartedAt?: string;
+  consultationCompletedAt?: string;
+  dispensedAt?: string;
+  billing?: BillingInfo;
+  completedAt?: string;
 }
 
 export interface VitalSigns {
