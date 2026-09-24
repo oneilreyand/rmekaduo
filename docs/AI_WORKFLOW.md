@@ -1,44 +1,23 @@
-# AI Workflow for RME
+# Panduan Ringkas untuk AI dan Programmer
 
-## Read before changing code
+Dokumen ini sengaja ringkas agar aturan kerja tidak terpecah. Sumber prosedur lengkap adalah [FEATURE_WORKFLOW.md](FEATURE_WORKFLOW.md); standar kode adalah [CODE_STANDARDS.md](CODE_STANDARDS.md); kebijakan keselamatan dan otoritas sumber adalah [GOVERNANCE.md](GOVERNANCE.md).
 
-1. `AGENTS.md` and `docs/GOVERNANCE.md` for universal repository rules and evidence requirements.
-2. Relevant accepted ADRs, then `docs/FRONTEND_ARCHITECTURE.md` for UI ownership and routing limits.
-3. The relevant domain document in `docs/` for clinical, BPJS, SATUSEHAT, API, or data work.
-4. Existing component APIs and their callers.
+## Urutan baca sebelum bekerja
 
-## Evidence ladder
+1. `AGENTS.md`
+2. `docs/GOVERNANCE.md`
+3. `docs/SDLC_KNOWLEDGE_MAP.md` untuk menemukan sumber yang relevan
+4. `docs/FEATURE_WORKFLOW.md`
+5. `docs/SDLC_WORKFLOW_AND_ROLES.md` serta `docs/QA_TRACEABILITY.md` bila perubahan melalui review, retest, atau release
+6. `docs/features/<feature-id>/DRD.md`
+7. TODO FE atau BE yang relevan, ADR diterima, dan kontrak/domain terkait.
 
-Use evidence in this order:
+## Aturan cepat
 
-1. An explicit user requirement.
-2. An approved repository decision or contract.
-3. Official primary documentation for a framework, standard, or integration.
-4. A clearly marked assumption that does not affect safety, data, or public behavior.
+- Jangan mulai implementasi sebelum DRD berstatus `READY` dan task menunjuk `REQ-###`.
+- Jangan membuat claim lebih kuat daripada Evidence ledger.
+- Catat assumption; block perubahan yang menyentuh pasien, data, security, authorization, audit, contract, routing, cost, atau integrasi bila belum ada keputusan.
+- Perbarui DRD/TODO/ADR/contract pada commit yang sama dengan perubahan perilaku.
+- Jangan menimpa perubahan agent lain; re-read target dan laporkan konflik.
 
-Never treat a code comment, placeholder, or generated example as a clinical requirement. Never fabricate a missing value to unblock a patient-facing flow.
-
-## Implementation protocol
-
-- Create or update a `docs/evidence/` record from `docs/templates/FEATURE_EVIDENCE_TEMPLATE.md` before substantive work.
-- Make changes in the owning Atomic Design layer; do not bypass it by embedding large UI blocks in pages.
-- Keep one concern per component and expose behavior through typed props.
-- Include loading, disabled, error, focus, and empty states whenever the component's purpose requires them.
-- Keep sensitive data out of mocks and use representative but synthetic values.
-- Avoid routes and new dependencies unless explicitly approved and documented.
-
-## Shared workspace and instruction resolution
-
-Before changing an existing implementation, re-read the target files and record what currently owns the behavior. Do not use an old task summary, a stale preview, or an earlier browser tab as authority to overwrite newer code.
-
-If requirements conflict, apply this order: the newest explicit user instruction; then approved ADRs/contracts; then current code only when it does not conflict. If a different agent's changes make the intended direction unclear, do not merge by guessing. Report the conflict, identify the affected entry points, and ask the user to choose.
-
-A local server can be stale or can run from another process. Verify the active port, the rendered page, and the on-disk route entry before claiming that source code caused a visible UI. Do not kill another server or overwrite its corresponding source unless the user explicitly requests it.
-
-## Completion protocol
-
-- Complete the evidence record with sources, assumptions, affected files, exact command outcomes, browser/device checks, risks, and next action.
-- Remove imports, styles, and types made obsolete by the change.
-- Run `npx tsc --noEmit` and `npm run build`.
-- For UI work, inspect the result in a browser at narrow and wide widths and test keyboard navigation.
-- Report changed behavior, verification results, assumptions, and remaining risks.
+Untuk template dan registry fitur, lihat `docs/features/README.md`.

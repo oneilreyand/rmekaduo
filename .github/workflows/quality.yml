@@ -1,0 +1,56 @@
+name: Quality checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Documentation, type, build, and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RME_TEST_DATABASE_URL: postgresql://rme_test:rme_test@127.0.0.1:5432/rme_test
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: rme_test
+          POSTGRES_USER: rme_test
+          POSTGRES_PASSWORD: rme_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rme_test -d rme_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check documentation
+        run: npm run check:docs
+
+      - name: Build application
+        run: npm run build
+
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test

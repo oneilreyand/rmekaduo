@@ -26,7 +26,7 @@ The UI System catalogue is a production consumer of the shared components. A pre
 
 Before implementation, agents must identify the relevant requirement in the repository and use official documentation for framework behavior. If a decision is neither specified nor evidenced, record the assumption in the task report and request clarification for behavior that affects users, clinical safety, data, routes, or dependencies. Durable architectural decisions belong in `docs/adr/`.
 
-Every substantive work item must have an evidence record under `docs/evidence/` as defined by `docs/GOVERNANCE.md`.
+Every substantive work item must have a feature DRD under `docs/features/<feature-id>/DRD.md`, with linked FE/BE TODOs and an evidence ledger, as defined by `docs/FEATURE_WORKFLOW.md`. Historical records under `docs/evidence/` are not the source of truth for new work.
 
 ## Verification
 

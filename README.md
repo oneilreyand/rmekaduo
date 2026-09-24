@@ -29,6 +29,15 @@ Seluruh dokumentasi teknis, formula kriptografi BPJS, mapping FHIR SATUSEHAT, sk
 | Modul Dev Hub | Deskripsi |
 | :--- | :--- |
 | 📖 [**Dev Hub Portal**](./docs/DEV_HUB.md) | Pintu gerbang dokumentasi, daftar istilah, dan checklist rilis. |
+| 🧭 [**Peta Pengetahuan SDLC**](./docs/SDLC_KNOWLEDGE_MAP.md) | Jalur baca per peran, sumber kebenaran, dan traceability delivery tanpa membuat policy baru. |
+| 🔎 [**Audit Kesenjangan SDLC**](./docs/SDLC_GAP_ASSESSMENT.md) | Perbandingan RME–Qlickhub, kondisi saat ini, dan keputusan yang masih diperlukan. |
+| 🧭 [**Sistem Kerja Fitur**](./docs/FEATURE_WORKFLOW.md) | Satu cara kerja berbasis DRD, TODO FE/BE, evidence ledger, dan status terukur. |
+| 👥 [**Workflow & Peran Delivery**](./docs/SDLC_WORKFLOW_AND_ROLES.md) | Tanggung jawab scope, implementasi, verifikasi, handoff, dan release owner. |
+| 🧪 [**QA Traceability**](./docs/QA_TRACEABILITY.md) | Konvensi test case, defect/retest, dan evidence release pada DRD. |
+| 🚀 [**Environment & Release**](./docs/DEPLOYMENT_AND_ENVIRONMENTS.md) | Bukti environment, preflight, release record, dan recovery/rollback. |
+| 🚨 [**Incident & Hotfix**](./docs/INCIDENT_AND_HOTFIX.md) | Triage aman dan follow-up insiden tanpa mengklaim kontrol yang belum tersedia. |
+| 🧱 [**Registry Fitur**](./docs/features/README.md) | Folder sumber kebenaran setiap fitur yang aktif. |
+| ✍️ [**Standar Kode**](./docs/CODE_STANDARDS.md) | Aturan penulisan kode dan pembaruan dokumen untuk manusia dan AI. |
 | 📑 [**Kontrak API Backend (REST)**](./docs/API_CONTRACT.md) | Spesifikasi OpenAPI / REST resmi FE & BE untuk integrasi mandiri. |
 | 🧩 [**Arsitektur Frontend**](./docs/FRONTEND_ARCHITECTURE.md) | Struktur Atomic Design, batas komponen, dan routing satu halaman. |
 | 🤖 [**Alur Kerja AI**](./docs/AI_WORKFLOW.md) | Standar evidence-based untuk agen yang mengubah proyek. |

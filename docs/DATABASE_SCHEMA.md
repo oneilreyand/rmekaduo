@@ -2,6 +2,9 @@
 
 Dokumen ini berisi Data Definition Language (DDL) lengkap untuk PostgreSQL 15+, mapping kolom ke standar FHIR SATUSEHAT, arsitektur audit trail *immutable*, serta strategi indeks trigram (`pg_trgm`) untuk pencarian fuzzy instan.
 
+> [!NOTE]
+> Arsitektur data ini mematuhi **ADR 0004** (Multi-Branch Scoped) dan **ADR 0005 Proposed** (Security & Data Governance). Seluruh tabel domain membawa `organization_id`; seluruh tabel operasional fasilitas membawa `branch_id`. Spesifikasi DDL ini akan dieksekusi secara bertahap pada Milestone P1 setelah ADR 0005 diterima.
+
 ---
 
 ## ⚡ Ekstensi PostgreSQL yang Diperlukan
@@ -17,7 +20,205 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 ```sql
 -- =============================================================================
--- 1. USERS & RBAC (Role-Based Access Control)
+-- 0. PLATFORM ORGANISASI, CABANG & IDENTITY (ADR 0004 & ADR 0005 Proposed)
+-- =============================================================================
+
+-- Organisasi Induk (Tenant Boundary Utama)
+CREATE TABLE organizations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(50) UNIQUE NOT NULL, -- Contoh: 'ORG-001'
+    name VARCHAR(200) NOT NULL,
+    ihs_organization_id VARCHAR(50), -- SATUSEHAT Organization ID
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Cabang Fasilitas Pelayanan Kesehatan
+CREATE TABLE branches (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    code VARCHAR(50) NOT NULL, -- Contoh: 'BR-01'
+    name VARCHAR(200) NOT NULL,
+    branch_type VARCHAR(50) DEFAULT 'KLINIK_PRATAMA',
+    faskes_code_bpjs VARCHAR(50), -- Kode PPK BPJS (contoh: 0123R001)
+    ihs_location_id VARCHAR(50), -- SATUSEHAT Location ID
+    address TEXT,
+    phone VARCHAR(30),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_branches_org_code UNIQUE (organization_id, code)
+);
+
+CREATE INDEX idx_branches_org ON branches(organization_id);
+
+-- Akun Pengguna / Kredensial Login (Terpisah dari Person/Practitioner)
+CREATE TABLE accounts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(150),
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(150) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    mfa_enabled BOOLEAN DEFAULT FALSE,
+    mfa_secret VARCHAR(100), -- Terenkripsi
+    failed_login_attempts INT DEFAULT 0,
+    locked_until TIMESTAMPTZ,
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_accounts_org_username UNIQUE (organization_id, username)
+);
+
+CREATE INDEX idx_accounts_org ON accounts(organization_id);
+
+-- Sesi Pengguna Server-Side (Stateful Session Store)
+CREATE TABLE sessions (
+    id VARCHAR(128) PRIMARY KEY, -- Token sesi 256-bit terenkripsi/hash
+    account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    active_branch_id UUID REFERENCES branches(id) ON DELETE RESTRICT,
+    ip_address VARCHAR(45) NOT NULL,
+    user_agent TEXT,
+    expires_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    last_active_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sessions_account ON sessions(account_id);
+CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+
+-- Role & Permission System (Granular RBAC)
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL, -- 'SUPER_ADMIN', 'ORG_ADMIN', 'DOKTER_CABANG', dll.
+    name VARCHAR(100) NOT NULL,
+    scope_type VARCHAR(20) NOT NULL, -- 'ORGANIZATION' | 'BRANCH'
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_roles_org_code UNIQUE (organization_id, code)
+);
+
+CREATE TABLE permissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(100) UNIQUE NOT NULL, -- e.g. 'patient:read', 'encounter:write', 'cross_branch:read'
+    name VARCHAR(150) NOT NULL,
+    module VARCHAR(50) NOT NULL, -- 'PATIENTS', 'ENCOUNTERS', 'BILLING', 'SYSTEM'
+    description TEXT
+);
+
+CREATE TABLE role_permissions (
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
+);
+
+-- Penugasan Peran ke Akun
+CREATE TABLE role_assignments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    branch_id UUID REFERENCES branches(id) ON DELETE CASCADE, -- NULL bila peran berskala Organisasi
+    is_active BOOLEAN DEFAULT TRUE,
+    assigned_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_role_assignment UNIQUE (account_id, role_id, branch_id)
+);
+
+CREATE INDEX idx_role_assignments_account ON role_assignments(account_id);
+CREATE INDEX idx_role_assignments_branch ON role_assignments(branch_id);
+
+-- Tenaga Medis / Practitioner Kanonik (Satu per Organisasi Induk)
+CREATE TABLE practitioners (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    account_id UUID UNIQUE REFERENCES accounts(id) ON DELETE SET NULL,
+    nik VARCHAR(16) NOT NULL,
+    full_name VARCHAR(150) NOT NULL,
+    gender VARCHAR(10) NOT NULL, -- 'male' | 'female'
+    practitioner_type VARCHAR(50) NOT NULL, -- 'DOKTER_UMUM', 'DOKTER_SPESIALIS', 'PERAWAT', 'BIDAN'
+    sip_number VARCHAR(100),
+    ihs_practitioner_id VARCHAR(50),
+    phone VARCHAR(30),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_practitioner_org_nik UNIQUE (organization_id, nik)
+);
+
+CREATE INDEX idx_practitioners_org ON practitioners(organization_id);
+
+-- Penugasan Tenaga Medis ke Cabang
+CREATE TABLE practitioner_branch_assignments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    practitioner_id UUID NOT NULL REFERENCES practitioners(id) ON DELETE RESTRICT,
+    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+    is_primary_branch BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    assigned_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_practitioner_branch UNIQUE (practitioner_id, branch_id)
+);
+
+CREATE INDEX idx_practitioner_branch ON practitioner_branch_assignments(branch_id, practitioner_id);
+
+-- Unit Layanan / Poli per Cabang
+CREATE TABLE polis (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+    code VARCHAR(30) NOT NULL, -- 'POLI_UMUM', 'POLI_GIGI', 'POLI_KIA'
+    name VARCHAR(100) NOT NULL,
+    bpjs_poli_code VARCHAR(30),
+    satusehat_service_type VARCHAR(50),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_polis_branch_code UNIQUE (branch_id, code)
+);
+
+CREATE INDEX idx_polis_branch ON polis(branch_id);
+
+-- Jadwal Praktik Tenaga Medis per Cabang dan Poli
+CREATE TABLE schedules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+    poli_id UUID NOT NULL REFERENCES polis(id) ON DELETE RESTRICT,
+    practitioner_id UUID NOT NULL REFERENCES practitioners(id) ON DELETE RESTRICT,
+    day_of_week INT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7), -- 1 = Senin, 7 = Minggu
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    max_quota INT DEFAULT 30,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_schedules_branch_practitioner ON schedules(branch_id, practitioner_id);
+CREATE INDEX idx_schedules_day ON schedules(branch_id, day_of_week);
+
+-- Peninjauan Kandidat Duplikat Pasien (ADR 0005 - Anti Auto-Merge)
+CREATE TYPE duplicate_candidate_status AS ENUM ('PENDING_REVIEW', 'CONFIRMED_SAME', 'CONFIRMED_DIFFERENT');
+
+CREATE TABLE patient_duplicate_candidates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    primary_patient_id UUID NOT NULL, -- REFERENCES patients(id)
+    candidate_patient_id UUID NOT NULL, -- REFERENCES patients(id)
+    confidence_score NUMERIC(5,2) NOT NULL,
+    match_reasons JSONB NOT NULL,
+    status duplicate_candidate_status DEFAULT 'PENDING_REVIEW',
+    reviewed_by UUID REFERENCES accounts(id),
+    reviewed_at TIMESTAMPTZ,
+    review_notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_duplicate_pair UNIQUE (organization_id, primary_patient_id, candidate_patient_id)
+);
+
+-- =============================================================================
+-- 1. USERS & RBAC (Legacy Prototype - Menunggu Cutover ke Accounts & Roles di P1)
 -- =============================================================================
 CREATE TYPE user_role AS ENUM (
     'ADMIN',
@@ -36,21 +237,24 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role user_role NOT NULL,
-    sip_number VARCHAR(50), -- Surat Izin Praktik (Khusus Dokter)
-    ihs_practitioner_id VARCHAR(50), -- SATUSEHAT Practitioner ID
+    sip_number VARCHAR(50),
+    ihs_practitioner_id VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =============================================================================
--- 2. MASTER PASIEN (Sesuai Permenkes 24/2022)
+-- 2. MASTER PASIEN KANONIK (Satu per Organisasi Induk - ADR 0004 & 0005)
 -- =============================================================================
+CREATE TYPE patient_record_status AS ENUM ('ACTIVE', 'DUPLICATE_CANDIDATE', 'MERGED_INTO');
+
 CREATE TABLE patients (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    no_rm VARCHAR(20) UNIQUE NOT NULL, -- Nomor Rekam Medis (Format: 00-00-00)
-    nik VARCHAR(16) UNIQUE NOT NULL,
-    ihs_patient_id VARCHAR(50) UNIQUE, -- ID Pasien SATUSEHAT (misal: P01234567890)
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    no_rm VARCHAR(20) NOT NULL, -- Nomor Rekam Medis Kanonik Organisasi
+    nik VARCHAR(16) NOT NULL,
+    ihs_patient_id VARCHAR(50), -- ID Pasien SATUSEHAT (misal: P01234567890)
     full_name VARCHAR(150) NOT NULL,
     gender VARCHAR(10) NOT NULL, -- 'male' | 'female'
     birth_date DATE NOT NULL,
@@ -59,17 +263,22 @@ CREATE TABLE patients (
     phone_number VARCHAR(20),
     address TEXT,
     is_registered_via_mjkn BOOLEAN DEFAULT FALSE, -- Flag pendaftaran mandiri Mobile JKN
-    allergies JSONB DEFAULT '[]'::JSONB, -- Array of strings/objects: [{"substance": "Amoksisilin", "severity": "severe"}]
+    allergies JSONB DEFAULT '[]'::JSONB, -- [{"substance": "Amoksisilin", "severity": "severe"}]
+    status patient_record_status DEFAULT 'ACTIVE',
+    merged_into_patient_id UUID REFERENCES patients(id),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_patients_org_no_rm UNIQUE (organization_id, no_rm),
+    CONSTRAINT uq_patients_org_nik UNIQUE (organization_id, nik)
 );
 
+CREATE INDEX idx_patients_org ON patients(organization_id);
 CREATE INDEX idx_patients_nik ON patients(nik);
 CREATE INDEX idx_patients_no_rm ON patients(no_rm);
 CREATE INDEX idx_patients_ihs ON patients(ihs_patient_id);
 
 -- =============================================================================
--- 3. KUNJUNGAN PASIEN / ENCOUNTER (HL7 FHIR Encounter)
+-- 3. KUNJUNGAN PASIEN / ENCOUNTER (Terikat pada Cabang - ADR 0004)
 -- =============================================================================
 CREATE TYPE booking_source_type AS ENUM ('MOBILE_JKN', 'ON_SITE', 'RUJUKAN_INTERNAL');
 
@@ -85,6 +294,8 @@ CREATE TYPE encounter_status AS ENUM (
 
 CREATE TABLE encounters (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
+    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
     patient_id UUID NOT NULL REFERENCES patients(id) ON DELETE RESTRICT,
     doctor_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     poli_code VARCHAR(20) NOT NULL, -- 'POLI_UMUM', 'POLI_GIGI', dll
@@ -225,23 +436,33 @@ CREATE TABLE prescription_items (
 );
 
 -- =============================================================================
--- 9. AUDIT TRAIL LOGS (Wajib STARKES / UU PDP)
+-- 9. AUDIT TRAIL LOGS IMMUTABLE (Wajib STARKES / UU PDP - ADR 0004 & 0005)
 -- =============================================================================
 CREATE TABLE audit_logs (
     id BIGSERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    action VARCHAR(20) NOT NULL, -- 'LOGIN', 'LOGOUT', 'READ', 'CREATE', 'UPDATE', 'DELETE'
-    entity_name VARCHAR(50) NOT NULL, -- 'patients', 'clinical_notes', 'prescriptions'
+    organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
+    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES accounts(id) ON DELETE SET NULL,
+    correlation_id VARCHAR(100),
+    action VARCHAR(50) NOT NULL, -- 'LOGIN', 'LOGOUT', 'READ', 'CREATE', 'UPDATE', 'DELETE', 'CROSS_BRANCH_ACCESS'
+    entity_name VARCHAR(50) NOT NULL, -- 'patients', 'encounters', 'clinical_notes', 'prescriptions'
     entity_id VARCHAR(100) NOT NULL,
-    old_values JSONB, -- Data sebelum perubahan
+    old_values JSONB, -- Data sebelum perubahan (tanpa kredensial/rahasia)
     new_values JSONB, -- Data sesudah perubahan
     ip_address VARCHAR(45) NOT NULL,
     user_agent TEXT,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_audit_org_time ON audit_logs(organization_id, created_at);
+CREATE INDEX idx_audit_branch_time ON audit_logs(branch_id, created_at);
 CREATE INDEX idx_audit_entity ON audit_logs(entity_name, entity_id);
 CREATE INDEX idx_audit_user_time ON audit_logs(user_id, created_at);
+
+-- Kepatuhan STARKES & UU PDP: Immutabilitas Audit Log (Append-Only Enforcement)
+-- Mencegah UPDATE dan DELETE pada tabel audit_logs di tingkat database
+CREATE OR REPLACE RULE prevent_audit_update AS ON UPDATE TO audit_logs DO INSTEAD NOTHING;
+CREATE OR REPLACE RULE prevent_audit_delete AS ON DELETE TO audit_logs DO INSTEAD NOTHING;
 
 -- =============================================================================
 -- 10. MASTER TERMINOLOGI & FAST FUZZY SEARCH (pg_trgm)

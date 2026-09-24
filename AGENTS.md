@@ -2,18 +2,18 @@
 
 ## Purpose and source of truth
 
-RME is an Indonesian electronic medical-record product. Preserve patient safety, privacy, and clinical clarity over visual novelty. Read `docs/GOVERNANCE.md`, the relevant document in `docs/`, and applicable ADRs before changing behavior. Product requirements, approved ADRs, API contracts, and applicable regulations are evidence; guesses are not.
+RME is an Indonesian electronic medical-record product. Preserve patient safety, privacy, and clinical clarity over visual novelty. Read `docs/GOVERNANCE.md`, `docs/FEATURE_WORKFLOW.md`, the active feature DRD, the relevant domain document, and applicable ADRs before changing behavior. Product requirements, approved ADRs, API contracts, and applicable regulations are evidence; guesses are not.
 
 ## Mandatory workflow
 
 1. Inspect the affected code and identify its owning layer.
-2. Read `docs/GOVERNANCE.md`, the matching domain document, relevant ADRs, and existing component examples.
-3. Create or update a feature evidence record under `docs/evidence/` for substantive work before implementation.
-4. State any assumption that is not supported by repository evidence or an approved official source.
+2. Read `docs/GOVERNANCE.md`, `docs/FEATURE_WORKFLOW.md`, the active feature DRD, matching domain document, relevant ADRs, and existing component examples.
+3. Create or update `docs/features/<feature-id>/DRD.md` and the relevant `fe/TODO.md` or `be/TODO.md` before substantive work. Each implementation task must point to a `REQ-###` and planned Evidence ID.
+4. State any assumption that is not supported by repository evidence or an approved official source. Assumptions affecting patients, data, authorization, audit, contracts, routing, cost, or integrations are blockers until explicitly decided.
 5. Make the smallest complete change possible.
-6. Verify according to the governance validation matrix; TypeScript and a production build are mandatory for frontend changes.
-7. Update documentation and ADRs when the architecture, public component API, workflow, navigation, or data behavior changes.
-8. Record changed behavior, exact validation results, assumptions, and remaining risks in the evidence record.
+6. Verify according to `docs/FEATURE_WORKFLOW.md`; jalankan `npm run check:docs` untuk setiap perubahan dokumentasi. TypeScript dan production build wajib untuk perubahan frontend.
+7. Update the DRD, TODO, governing contract, and ADR when architecture, public component API, workflow, navigation, or data behavior changes.
+8. Record changed behavior, exact validation inputs/expected/actual results, assumptions, and remaining risks in the DRD Evidence ledger. Do not mark work validated without the required proof.
 
 Do not invent clinical rules, API fields, regulatory claims, patient data, or integration behavior. Ask for a decision when evidence is absent.
 
@@ -25,7 +25,7 @@ This workspace may be changed by a user, another agent, or a running development
 - If a newer change changes the page entry point, layout, component ownership, or visual direction, stop and report the conflict with file names and evidence. Continue only after the user explicitly chooses the intended direction.
 - Treat a running server's rendered UI as evidence of a specific process, not automatically as the current workspace source. Confirm the port, source entry point, and current file contents before drawing conclusions.
 - Prefer additive, isolated work while another change is active. Destructive cleanup requires explicit user authorization and a final reference search.
-- At handoff, report every page-entry file and configuration file changed so another agent can avoid undoing it.
+- At handoff, report the feature ID, changed page-entry/configuration files, Evidence IDs, unresolved blockers, and the next TODO so another agent can avoid undoing it.
 
 ## Frontend architecture
 
@@ -51,4 +51,4 @@ Never place real patient data, credentials, or secrets in source, fixtures, docu
 
 ## Quality bar
 
-Run `npx tsc --noEmit` and `npm run build` after frontend changes. Record exact outcomes and unavailable test environments in the evidence record. Resolve errors rather than suppressing them with broad casts, disabled lint rules, or `@ts-ignore`. Keep components small, remove unused code in the same change, and prefer tests that prove observable behavior over implementation details.
+Run `npm run check:docs` after documentation changes, and run `npx tsc --noEmit` plus `npm run build` after frontend changes. Record exact outcomes and unavailable test environments in the feature DRD. Resolve errors rather than suppressing them with broad casts, disabled lint rules, or `@ts-ignore`. Keep components small, remove unused code in the same change, and prefer tests that prove observable behavior over implementation details. Follow `docs/CODE_STANDARDS.md` for all code and documentation updates.

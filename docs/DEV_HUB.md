@@ -10,6 +10,16 @@ Selamat datang di **Developer Hub RME**. Dokumentasi ini dirancang sebagai pandu
 docs/
 ├── DEV_HUB.md                     <-- (Anda di sini) Indeks Utama & Roadmap
 ├── GOVERNANCE.md                  <-- Aturan kerja, evidence, ADR, dan quality gate agen
+├── FEATURE_WORKFLOW.md            <-- Satu alur DRD, TODO FE/BE, status, dan evidence ledger
+├── CODE_STANDARDS.md              <-- Aturan penulisan kode dan update dokumentasi
+├── SDLC_KNOWLEDGE_MAP.md          <-- Peta sumber, jalur baca per peran, dan traceability delivery
+├── SDLC_GAP_ASSESSMENT.md         <-- Perbandingan SDLC RME–Qlickhub dan gap yang belum diputuskan
+├── SDLC_WORKFLOW_AND_ROLES.md     <-- Tanggung jawab delivery, handoff, dan keputusan rilis
+├── QA_TRACEABILITY.md             <-- Test case, defect/retest, dan tautan evidence DRD
+├── DEPLOYMENT_AND_ENVIRONMENTS.md <-- Environment, release preflight, dan recovery record
+├── INCIDENT_AND_HOTFIX.md         <-- Triage insiden, hotfix, dan follow-up aman
+├── POLICY_REGISTRY.md             <-- ID policy yang menunjuk sumber kanonik
+├── features/                      <-- Satu folder per fitur (DRD.md + fe/TODO.md + be/TODO.md)
 ├── API_CONTRACT.md                <-- Kontrak RESTful API Resmi FE & BE (OpenAPI Ready)
 ├── ARCHITECTURE_AND_STACK.md      <-- Blueprint Arsitektur, Async Queue, & Struktur Folder
 ├── UI_UX_DESIGN_SYSTEM.md         <-- Design Tokens, Clinical Layout, & Keyboard Hotkeys
@@ -19,6 +29,12 @@ docs/
 ├── SATUSEHAT_FHIR.md              <-- OAuth2 Kemenkes, IHS Lookup, & FHIR R4 Bundles
 └── STARKES_COMPLIANCE.md          <-- 1x24h Locking, Addendum, Audit Log, & Skrining Pasien
 ```
+
+## Cara memulai pekerjaan fitur
+
+Sebelum mengubah kode, buka [Peta Pengetahuan SDLC](SDLC_KNOWLEDGE_MAP.md), lalu [Sistem Kerja Fitur](FEATURE_WORKFLOW.md). Pilih atau buat folder di [Registry Fitur](features/README.md), lalu lengkapi `DRD.md` sampai status `READY`. Gunakan `fe/TODO.md` dan `be/TODO.md` untuk membagi pekerjaan tanpa memecah kebutuhan atau bukti. Bukti aktual selalu dicatat pada Evidence ledger di DRD.
+
+Untuk QA/release, ikuti [Delivery Workflow and Roles](SDLC_WORKFLOW_AND_ROLES.md), [QA Traceability](QA_TRACEABILITY.md), serta [Deployment and Environments](DEPLOYMENT_AND_ENVIRONMENTS.md). Untuk insiden atau hotfix, mulai dari [Incident and Hotfix](INCIDENT_AND_HOTFIX.md). [Audit Kesenjangan SDLC](SDLC_GAP_ASSESSMENT.md) tetap mencatat batas operasional yang belum dapat diklaim.
 
 ---
 

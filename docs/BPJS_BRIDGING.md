@@ -186,3 +186,83 @@ Setiap perubahan fase pelayanan wajib dilaporkan ke endpoint `/antrean/updatewak
 }
 ```
 *(Jika `statusPeserta.kode == "0"`, pasien dapat dijamin BPJS).*
+
+---
+
+## 🏥 5. Spesifikasi Bridging BPJS P-Care v2.0 (FKTP)
+
+Ditujukan untuk Fasilitas Kesehatan Tingkat Pertama (Puskesmas / Klinik Pratama / DPM):
+
+### 5.1 Pendaftaran Kunjungan
+* **Method:** `POST`
+* **Endpoint:** `/pendaftaran`
+* **Payload:**
+  ```json
+  {
+    "kdProviderPeserta": "0123R001",
+    "tglDaftar": "22-09-2026",
+    "noKartu": "0001234567890",
+    "kdPoli": "001",
+    "keluhan": "Demam dan batuk",
+    "kunjSakit": true,
+    "sistole": 120,
+    "diastole": 80,
+    "beratBadan": 68,
+    "tinggiBadan": 170,
+    "respRate": 18,
+    "heartRate": 82
+  }
+  ```
+
+### 5.2 Entri Pelayanan Dokter
+* **Method:** `POST`
+* **Endpoint:** `/pelayanan`
+* **Payload:** Mengirimkan diagnosa primer (ICD-10), kesadaran, status pulang (3: Berobat Jalan, 4: Rujuk Vertikal), dan terapi obat.
+
+### 5.3 Penerbitan Surat Rujukan Vertikal (FKTP $\rightarrow$ RS)
+* **Method:** `POST`
+* **Endpoint:** `/rujukan`
+* **Payload:** Menyertakan `kdppk` RS tujuan, `kdSubSpesialis`, kriteria `tacc` (1: Time, 2: Age, 3: Complication, 4: Comorbidity), dan estimasi tanggal kunjungan.
+
+---
+
+## 🏛️ 6. Spesifikasi Bridging BPJS V-Claim v2.0 (FKRTL / Rumah Sakit)
+
+Ditujukan untuk Fasilitas Kesehatan Rujukan Tingkat Lanjut (Rumah Sakit / Klinik Utama):
+
+### 6.1 Penerbitan Surat Eligibilitas Peserta (SEP)
+* **Method:** `POST`
+* **Endpoint:** `/SEP/2.0/insert`
+* **Payload:**
+  ```json
+  {
+    "request": {
+      "t_sep": {
+        "noKartu": "0001234567890",
+        "tglSep": "2026-09-22",
+        "ppkPelayanan": "0123R001",
+        "jnsPelayanan": "2",
+        "klsRawatHak": "1",
+        "noMR": "RM-001289",
+        "rujukan": {
+          "asalRujukan": "1",
+          "tglRujukan": "2026-09-20",
+          "noRujukan": "0123R0010926P000124",
+          "ppkRujukan": "0123R001"
+        },
+        "catatan": "Pemeriksaan lanjutan poli dalam",
+        "diagAwal": "J06.9",
+        "poli": { "tujuan": "INT", "eksekutif": "0" },
+        "dpjpLayan": "12345",
+        "noTelp": "081234567890",
+        "user": "LOKET-ADM-01"
+      }
+    }
+  }
+  ```
+
+### 6.2 Penerbitan Surat Perintah Kontrol (SK) & SPRI
+* **Method:** `POST`
+* **Endpoint:** `/RencanaKontrol/insert`
+* **Payload:** Menyertakan `noSEP`, `tglRencanaKontrol`, `poliKontrol`, dan `kodeDokter`.
+

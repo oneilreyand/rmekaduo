@@ -1,6 +1,6 @@
 # 📑 Kontrak API (API Contract Specification) v1.0.0
 
-Dokumen ini merupakan spesifikasi teknis resmi antara tim **Frontend (FE)** dan **Backend (BE)** untuk sistem Rekam Medis Elektronik (RME). Seluruh endpoint menggunakan standar **RESTful API**, format data **JSON**, autentikasi **Bearer JWT**, serta mematuhi aturan penamaan dan struktur data Kemenkes SATUSEHAT (HL7 FHIR R4) dan BPJS Kesehatan.
+Dokumen ini merupakan target kontrak antara tim **Frontend (FE)** dan **Backend (BE)** untuk sistem Rekam Medis Elektronik (RME). Endpoint legacy belum seluruhnya mematuhi kontrak ini. Autentikasi berbasis sesi aman server-side bergantung pada **ADR 0004** dan **ADR 0005 Proposed**; ia tidak boleh diklaim aktif pada endpoint yang belum dibungkus authorization server-side.
 
 ---
 
@@ -9,11 +9,12 @@ Dokumen ini merupakan spesifikasi teknis resmi antara tim **Frontend (FE)** dan 
 * **Base URL:** `https://api.faskes.id/api/v1` (Production) / `http://localhost:8000/api/v1` (Development)
 * **Standard Headers:**
   ```http
-  Authorization: Bearer <jwt_access_token>
+  Cookie: session_id=<opaque_secure_session_token>
   Content-Type: application/json
   Accept: application/json
-  X-Faskes-ID: 0123R001
+  X-Branch-ID: <branch_uuid_hint>
   ```
+  *(Catatan: `X-Branch-ID` / `X-Faskes-ID` hanya diperlakukan sebagai petunjuk permintaan client yang divalidasi ketat terhadap penugasan cabang dalam sesi server-side. Bila tidak sesuai hak akses, server merespons `403 Forbidden`. Header client tidak pernah menjadi sumber otoritas akses.)*
 * **Format Response Standar:**
   ```json
   {
@@ -23,7 +24,9 @@ Dokumen ini merupakan spesifikasi teknis resmi antara tim **Frontend (FE)** dan 
     "data": {},
     "meta": {
       "timestamp": "2026-09-21T11:50:00Z",
-      "requestId": "req-982183719"
+      "requestId": "req-982183719",
+      "organizationId": "org-uuid-001",
+      "branchId": "branch-uuid-001"
     }
   }
   ```
@@ -40,6 +43,152 @@ Dokumen ini merupakan spesifikasi teknis resmi antara tim **Frontend (FE)** dan 
         "message": "NIK wajib terdiri dari 16 digit angka numerik"
       }
     ]
+  }
+  ```
+
+---
+
+## 🔐 0. Modul Autentikasi, Sesi, dan Hak Akses (`/auth`)
+
+### 0.1 Login Pengguna
+* **Method:** `POST`
+* **Path:** `/auth/login`
+* **Rate Limit:** Maksimal 5 percobaan gagal per 15 menit per IP/Username (`429 RATE_LIMIT_EXCEEDED`).
+* **Lockout:** 5 kali kegagalan berturut-turut mengunci akun selama 15 menit (`403 ACCOUNT_LOCKED`).
+* **Request Body:**
+  ```json
+  {
+    "username": "dr_budi_sintetis",
+    "password": "DokterSintetis123!",
+    "organizationCode": "ORG-SINTETIS-01"
+  }
+  ```
+* **Response `200 OK`:**
+  *Headers:* `Set-Cookie: session_id=<token_256bit>; Path=/; HttpOnly; SameSite=Strict; Max-Age=43200`
+  ```json
+  {
+    "success": true,
+    "code": 200,
+    "message": "Login berhasil",
+    "data": {
+      "user": {
+        "id": "ac000000-0000-0000-0000-000000000002",
+        "username": "dr_budi_sintetis",
+        "fullName": "dr. Sintetis Budi, Sp.PD [SINTETIS]",
+        "email": "dr.budi.sintetis@example.internal"
+      },
+      "organization": {
+        "id": "a0000000-0000-0000-0000-000000000001",
+        "code": "ORG-SINTETIS-01",
+        "name": "Klinik Pratama Sehat Sejahtera Group [SINTETIS]"
+      },
+      "activeBranch": {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "code": "BR-SINTETIS-01",
+        "name": "Klinik Sehat Cabang Kemang [SINTETIS]"
+      },
+      "roles": [
+        {
+          "id": "c0000000-0000-0000-0000-000000000003",
+          "code": "DOKTER_CABANG",
+          "name": "Dokter Cabang [SINTETIS]",
+          "scopeType": "BRANCH",
+          "branchId": "b0000000-0000-0000-0000-000000000001"
+        }
+      ],
+      "permissions": [
+        "patient:read",
+        "encounter:read",
+        "encounter:write",
+        "cross_branch:read"
+      ],
+      "assignedBranches": [
+        "b0000000-0000-0000-0000-000000000001",
+        "b0000000-0000-0000-0000-000000000002"
+      ]
+    }
+  }
+  ```
+
+---
+
+### 0.2 Profil Sesi Aktif (Me)
+* **Method:** `GET`
+* **Path:** `/auth/me`
+* **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "code": 200,
+    "data": {
+      "user": {
+        "id": "ac000000-0000-0000-0000-000000000002",
+        "username": "dr_budi_sintetis",
+        "fullName": "dr. Sintetis Budi, Sp.PD [SINTETIS]",
+        "email": "dr.budi.sintetis@example.internal",
+        "mfaEnabled": true
+      },
+      "organization": {
+        "id": "a0000000-0000-0000-0000-000000000001",
+        "code": "ORG-SINTETIS-01",
+        "name": "Klinik Pratama Sehat Sejahtera Group [SINTETIS]"
+      },
+      "activeBranch": {
+        "id": "b0000000-0000-0000-0000-000000000001",
+        "code": "BR-SINTETIS-01",
+        "name": "Klinik Sehat Cabang Kemang [SINTETIS]"
+      },
+      "roles": [],
+      "permissions": [],
+      "assignedBranches": [],
+      "isOrgAdmin": false
+    }
+  }
+  ```
+
+---
+
+### 0.3 Pergantian Cabang Aktif (Switch Branch)
+* **Method:** `POST`
+* **Path:** `/auth/switch-branch`
+* **Catatan Otorisasi:** Cabang tujuan wajib termasuk dalam penugasan aktif akun atau akun memiliki hak akses organisasi. Jika tidak berhak, server merespons `403 BRANCH_ACCESS_DENIED`.
+* **Request Body:**
+  ```json
+  {
+    "branchId": "b0000000-0000-0000-0000-000000000002"
+  }
+  ```
+* **Response `200 OK`:**
+  ```json
+  {
+    "success": true,
+    "code": 200,
+    "message": "Cabang aktif berhasil diubah",
+    "data": {
+      "activeBranch": {
+        "id": "b0000000-0000-0000-0000-000000000002",
+        "code": "BR-SINTETIS-02",
+        "name": "Klinik Sehat Cabang Tebet [SINTETIS]"
+      }
+    }
+  }
+  ```
+
+---
+
+### 0.4 Logout Pengguna
+* **Method:** `POST`
+* **Path:** `/auth/logout`
+* **Response `200 OK`:**
+  *Headers:* `Set-Cookie: session_id=; Path=/; Max-Age=0`
+  ```json
+  {
+    "success": true,
+    "code": 200,
+    "message": "Logout berhasil",
+    "data": {
+      "loggedOut": true
+    }
   }
   ```
 

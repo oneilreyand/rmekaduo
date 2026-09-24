@@ -1,4 +1,6 @@
-# Feature Evidence Record — <Title>
+# Historical Feature Evidence Record — <Title>
+
+> New work uses `docs/features/<feature-id>/DRD.md` and its Evidence ledger. This template is retained only to preserve and repair historical records.
 
 - **Date:** YYYY-MM-DD
 - **Owner / agent:**

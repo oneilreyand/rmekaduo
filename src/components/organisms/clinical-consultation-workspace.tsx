@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Plus, Trash2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Plus, Trash2, ShieldCheck, ShieldAlert, Send, FileText, CheckCircle2 } from 'lucide-react';
 import type { Patient, VitalSigns, PrescriptionItem, PastVisit, SoapNote } from '@/types/rme';
 import { PatientBanner } from '@/components/organisms/patient-banner';
 import { Sparkline } from '@/components/atoms/sparkline';
@@ -10,6 +10,9 @@ import { SmartDosageChips } from '@/components/molecules/smart-dosage-chips';
 import { DiagnosticMacroPills, type DiagnosticMacro } from '@/components/molecules/diagnostic-macro-pills';
 import { FloatingClinicalDock } from '@/components/organisms/floating-clinical-dock';
 import { Toast, type ToastTone } from '@/components/molecules/toast';
+import { PCareRujukanModal } from '@/components/molecules/pcare-rujukan-modal';
+import { PCareService } from '@/lib/bpjs/pcare-service';
+import { VClaimService } from '@/lib/bpjs/vclaim-service';
 
 const mockPatient: Patient = {
   id: 'pat-001',
@@ -117,6 +120,11 @@ export function ClinicalConsultationWorkspace() {
   const [toast, setToast] = useState<{ tone: ToastTone; message: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Bridging State
+  const [isRujukanModalOpen, setIsRujukanModalOpen] = useState(false);
+  const [isSyncingPCare, setIsSyncingPCare] = useState(false);
+  const [isCreatingSuratKontrol, setIsCreatingSuratKontrol] = useState(false);
+
   const medInputRef = useRef<HTMLInputElement>(null);
 
   // Check allergy whenever medInput changes
@@ -196,6 +204,56 @@ export function ClinicalConsultationWorkspace() {
         `Catatan contoh ${patient.name} disimpan di sesi browser dan diteruskan ke antrean farmasi demo.`
       );
     }, 450);
+  };
+
+  const handleSyncPCare = async () => {
+    setIsSyncingPCare(true);
+    try {
+      const res = await PCareService.submitPelayanan({
+        noKartu: patient.bpjsNumber || '0001234567891',
+        tglDaftar: new Date().toISOString().split('T')[0],
+        kdPoli: '001',
+        keluhan: soap.subjective,
+        kdSadar: '01',
+        sistole: vitals.systolic,
+        diastole: vitals.diastolic,
+        beratBadan: vitals.weightKg,
+        tinggiBadan: vitals.heightCm,
+        respRate: vitals.respiratoryRate,
+        heartRate: vitals.heartRate,
+        kdStatusPulang: '3',
+        tglPulang: new Date().toISOString().split('T')[0],
+        kdDokter: 'DOC-01',
+        kdDiag1: soap.icd10Code || 'J06.9',
+        anamnesa: soap.subjective,
+        terapi: soap.plan,
+      });
+      showToast('success', `P-Care Terverifikasi: ${res.metaData?.message || 'Data pelayanan tersimpan'}`);
+    } catch {
+      showToast('error', 'Gagal mengirim data pelayanan ke BPJS P-Care.');
+    } finally {
+      setIsSyncingPCare(false);
+    }
+  };
+
+  const handleCreateSuratKontrol = async () => {
+    setIsCreatingSuratKontrol(true);
+    try {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + 7);
+      const res = await VClaimService.createSuratKontrol({
+        noSEP: '0123R0010926V000001',
+        tglRencanaKontrol: targetDate.toISOString().split('T')[0],
+        poliKontrol: 'Poli Penyakit Dalam',
+        kodeDokter: 'DOC-01',
+        user: 'DOKTER-SPESIALIS',
+      });
+      showToast('success', `Surat Kontrol V-Claim Terbit: ${res.response.noSuratKontrol}`);
+    } catch {
+      showToast('error', 'Gagal membuat Surat Kontrol V-Claim.');
+    } finally {
+      setIsCreatingSuratKontrol(false);
+    }
   };
 
   const showToast = (tone: ToastTone, message: string) => {
@@ -366,6 +424,50 @@ export function ClinicalConsultationWorkspace() {
                     className="ui-input w-full rounded-xl border p-2.5 text-sm"
                     placeholder="Instruksi rencana terapi, edukasi pasien, dan rujukan..."
                   />
+                </div>
+
+                {/* Bridging Clinical Actions (P-Care & V-Claim) */}
+                <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-3.5 dark:border-stone-800 dark:bg-stone-850/50">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="ui-heading text-xs font-bold flex items-center gap-1.5">
+                      <ShieldCheck className="h-4 w-4 text-[var(--action)]" />
+                      Layanan Bridging BPJS Klinis
+                    </span>
+                    <span className="text-[10px] text-stone-500 font-mono">
+                      No. Kartu: {patient.bpjsNumber || '0001234567891'}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSyncPCare}
+                      disabled={isSyncingPCare}
+                      className="ui-action flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold shadow-xs"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {isSyncingPCare ? 'Mengirim ke P-Care...' : 'Kirim Pelayanan P-Care'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsRujukanModalOpen(true)}
+                      className="ui-secondary flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border border-indigo-200 text-indigo-800 dark:border-indigo-800 dark:text-indigo-300"
+                    >
+                      <Send className="h-3.5 w-3.5 text-indigo-600" />
+                      Rujuk ke RS (P-Care)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCreateSuratKontrol}
+                      disabled={isCreatingSuratKontrol}
+                      className="ui-secondary flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold border border-emerald-200 text-emerald-800 dark:border-emerald-800 dark:text-emerald-300"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-emerald-600" />
+                      {isCreatingSuratKontrol ? 'Membuat...' : 'Surat Kontrol (V-Claim)'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -583,6 +685,18 @@ export function ClinicalConsultationWorkspace() {
           <Toast tone={toast.tone} message={toast.message} />
         </div>
       )}
+
+      {/* PCARE RUJUKAN MODAL DIALOG */}
+      <PCareRujukanModal
+        isOpen={isRujukanModalOpen}
+        onClose={() => setIsRujukanModalOpen(false)}
+        patientName={patient.name}
+        bpjsNumber={patient.bpjsNumber || '0001234567891'}
+        primaryDiagnosis={soap.assessment}
+        onRujukanCreated={(rujukan) => {
+          showToast('success', `Surat Rujukan P-Care ${rujukan.noRujukan} berhasil diterbitkan.`);
+        }}
+      />
     </main>
   );
 }

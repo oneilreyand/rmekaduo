@@ -6,12 +6,23 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:features": "node scripts/check-feature-docs.mjs",
+    "check:docs": "npm run check:features && node scripts/check-doc-links.mjs",
+    "migrate": "node scripts/migrate.mjs up",
+    "migrate:down": "node scripts/migrate.mjs down",
+    "migrate:status": "node scripts/migrate.mjs status",
+    "db:seed": "node scripts/seed-platform-fixtures.mjs",
+    "db:backup": "node scripts/backup-restore.mjs backup",
+    "db:restore": "node scripts/backup-restore.mjs restore",
+    "test": "node --test --test-concurrency=1 test/**/*.test.mjs"
   },
   "dependencies": {
+    "@types/pg": "^8.23.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "next": "^15.1.7",
+    "pg": "^8.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.0.1"
